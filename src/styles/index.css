@@ -1,0 +1,54 @@
+@import './tokens.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body{ background:var(--bg); color:var(--ink);
+  font-family:"Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+/* Headings use the display face (Space Grotesk) for a bit more character. */
+h1, h2, h3, .font-display{
+  font-family:"Space Grotesk Variable", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing:-0.02em;
+}
+:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+/* Signature gradient — used on primary actions across the app. */
+.grad-primary{
+  background-image:linear-gradient(120deg,#5B4BF0,#7C6BFF 60%,#2E7DFF);
+  color:#fff;
+  box-shadow:0 8px 18px -8px rgba(91,75,240,.55);
+}
+.grad-primary:hover{ filter:brightness(1.06); }
+
+/* Brand avatar/mark gradient — one source of truth. */
+.grad-avatar{ background:linear-gradient(140deg,#7C6BFF,#5B4BF0); color:#fff; }
+
+/* Shared text input. Focus ring is driven by --focus so it flips with the theme. */
+.field-input{ width:100%; border-radius:11px; border:1px solid var(--line-strong); background:var(--card); color:var(--ink); outline:none; transition:border-color .15s, box-shadow .15s; }
+.field-input::placeholder{ color:var(--faint); }
+.field-input:focus{ border-color:var(--hi-deep); box-shadow:0 0 0 3.5px color-mix(in srgb, var(--focus) 20%, transparent); }
+.field-input[readonly]{ background:var(--card-2); color:var(--muted); }
+
+/* motion for toasts / dialogs */
+@keyframes toastin { from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
+@keyframes fadein { from{ opacity:0 } to{ opacity:1 } }
+@keyframes popin { from{ opacity:0; transform:scale(.96) translateY(6px) } to{ opacity:1; transform:none } }
+
+/* skeleton shimmer */
+@keyframes shimmer { 100%{ transform:translateX(100%) } }
+.skeleton{ position:relative; overflow:hidden; background:var(--card-2); border-radius:6px; }
+.skeleton::after{ content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent); animation:shimmer 1.4s infinite; }
+:root[data-theme="dark"] .skeleton::after{ background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent); }
+@media (prefers-color-scheme:dark){ .skeleton::after{ background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent); } }
+
+/* file-type tiles (theme-aware) */
+.tile-pdf{ background:#FDE7E7; color:#C4453B } .tile-doc{ background:#E4EEFB; color:#2E6BD0 }
+.tile-zip{ background:#EDE9FB; color:#6B54C9 } .tile-img{ background:#E3F5EC; color:#12A36F }
+.tile-csv{ background:#FEF1DD; color:#C6811A } .tile-default{ background:var(--card-2); color:var(--muted) }
+:root[data-theme="dark"] .tile-pdf{ background:#3A2020; color:#F09189 } :root[data-theme="dark"] .tile-doc{ background:#1E2C42; color:#7FA9EC }
+:root[data-theme="dark"] .tile-zip{ background:#272147; color:#A796EE } :root[data-theme="dark"] .tile-img{ background:#173226; color:#5FD3A0 }
+:root[data-theme="dark"] .tile-csv{ background:#2E2412; color:#E0AC5A }
+@media (prefers-color-scheme:dark){
+  .tile-pdf{ background:#3A2020; color:#F09189 } .tile-doc{ background:#1E2C42; color:#7FA9EC }
+  .tile-zip{ background:#272147; color:#A796EE } .tile-img{ background:#173226; color:#5FD3A0 } .tile-csv{ background:#2E2412; color:#E0AC5A }
+}
