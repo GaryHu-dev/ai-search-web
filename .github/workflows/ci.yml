@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]        # post-merge run on the mainline
+  pull_request:             # every PR (dev is covered via its PR — no double run)
+
+# Cancel superseded runs on the same ref to save minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# This workflow only reads the repo and runs checks — no writes needed.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # `pnpm build` runs `tsc --noEmit && vite build`, so type-checking is covered here.
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+# The Playwright e2e (`pnpm test:e2e`) needs the live ai-search-api backend
+# (NestJS + Postgres + MinIO) plus the dev server, so it is not run here. It stays a
+# local / integration check; a dedicated e2e workflow can be added once the backend
+# is reachable from CI.
