@@ -1,0 +1,58 @@
+name: CD
+
+# On every push to main (after a PR merges) — or on demand — build the SPA and
+# rsync it into the directory Caddy serves on the server. The frontend is plain
+# static files; the reverse proxy + TLS live in the backend's Caddy stack.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never cancel an in-flight deploy.
+concurrency:
+  group: cd-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        # VITE_API_BASE_URL is baked in at build time — set as a repo Variable.
+        # For this deploy it is https://omniport.online/api (Caddy strips /api → api:3000/v1).
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+        run: |
+          test -n "$VITE_API_BASE_URL" || { echo "::error::VITE_API_BASE_URL repo Variable is empty — refusing to ship a bundle that would throw on load"; exit 1; }
+          pnpm build
+
+      - name: Deploy dist to the server's Caddy web root
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          SSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new"
+          # Ensure the web root exists (the backend stack normally creates it) so a
+          # frontend-first deploy fails clearly instead of on a missing rsync target.
+          $SSH "$SSH_USER@$SSH_HOST" 'mkdir -p /opt/omniport/www'
+          # Sync the built SPA into the dir Caddy serves (compose mounts ./www -> /srv/www).
+          # --delete removes stale content-hashed assets from previous builds.
+          rsync -az --delete -e "$SSH" dist/ "$SSH_USER@$SSH_HOST:/opt/omniport/www/"
