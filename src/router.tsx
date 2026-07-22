@@ -4,6 +4,7 @@ import { useAuth } from './lib/auth/auth-context'
 import { Spinner } from './components/Spinner'
 import { AppShell } from './layouts/AppShell'
 import { LoginPage } from './features/auth/LoginPage'
+import { AuthCallback } from './features/auth/AuthCallback'
 import { OverviewPage } from './features/overview/OverviewPage'
 import { FilesPage } from './features/files/FilesPage'
 import { OptimizePage } from './features/optimize/OptimizePage'
@@ -26,6 +27,10 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
 // and rendered inside AppShell (Overview / Files / Optimize / Account).
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
+  // Landing route for the backend's Google OAuth redirect. Must be a real route
+  // (not the catch-all) so it doesn't redirect away and strip the token fragment
+  // before AuthProvider consumes it.
+  { path: '/auth/callback', element: <AuthCallback /> },
   {
     path: '/',
     element: (
