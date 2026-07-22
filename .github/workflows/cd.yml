@@ -31,12 +31,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
-        # VITE_API_BASE_URL is baked in at build time — set as a repo Variable.
-        # For this deploy it is https://omniport.online/api (Caddy strips /api → api:3000/v1).
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+        # Production API base comes from the committed .env.production (loaded by
+        # `vite build`) and is baked into the bundle — no repo Variable needed.
         run: |
-          test -n "$VITE_API_BASE_URL" || { echo "::error::VITE_API_BASE_URL repo Variable is empty — refusing to ship a bundle that would throw on load"; exit 1; }
+          grep -Eq '^VITE_API_BASE_URL=.+$' .env.production || { echo "::error::.env.production is missing VITE_API_BASE_URL — refusing to ship a bundle that would blank-page for users"; exit 1; }
           pnpm build
 
       - name: Deploy dist to the server's Caddy web root

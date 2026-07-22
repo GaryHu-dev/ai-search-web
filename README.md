@@ -33,13 +33,13 @@ cp .env.example .env
 
 Then edit `.env`:
 
-- `VITE_API_BASE_URL` — backend base URL. Defaults to `http://localhost:3000`
-  in dev; **required** in production builds (the app throws at module load if
-  it's missing when built with `PROD=true`).
-- `VITE_GOOGLE_CLIENT_ID` — optional. Set it to enable the "Continue with
-  Google" button; leave unset to hide it. The backend's `GOOGLE_CLIENT_ID`
-  must match, and this app's origin must be an Authorized JavaScript origin in
-  Google Cloud Console.
+- `VITE_API_BASE_URL` — backend base URL. `http://localhost:3000` for local dev
+  (`.env.example`); the production value (`https://omniport.online/api`) lives in
+  the committed `.env.production`, baked into the bundle by `vite build`.
+- Google sign-in is **backend-driven** (OAuth redirect flow) — the frontend needs
+  no Google config. The "Continue with Google" button navigates to the backend;
+  enable it by setting `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` /
+  `GOOGLE_CALLBACK_URL` / `GOOGLE_POST_LOGIN_REDIRECT` on the backend.
 
 ## Commands
 

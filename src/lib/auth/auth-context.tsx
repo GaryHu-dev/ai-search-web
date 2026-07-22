@@ -27,9 +27,10 @@ type RegisterInput = {
 interface AuthValue {
   status: Status
   user: User | null
+  googleError: string | null
+  clearGoogleError(): void
   login(email: string, password: string): Promise<void>
   register(input: RegisterInput): Promise<void>
-  loginWithGoogle(idToken: string): Promise<void>
   logout(): Promise<void>
   setUser(user: User): void
 }
@@ -46,6 +47,36 @@ function me(): Promise<User> {
   return apiFetch<User>('/v1/users/me')
 }
 
+// After a backend-driven Google redirect, the session tokens (or an error) come
+// back in the URL fragment. This only READS them — the fragment is stripped later
+// (stripUrlFragment), once the session is actually established, so a React 18
+// StrictMode double-invoke can't consume it on a run that then gets cancelled and
+// leave the second run with nothing. Returns null when the URL isn't a Google return.
+type GoogleReturn = { tokens: AuthTokens } | { error: string } | null
+function readGoogleReturn(): GoogleReturn {
+  if (typeof window === 'undefined') return null
+  const raw = window.location.hash.replace(/^#/, '')
+  if (!raw) return null
+  const p = new URLSearchParams(raw)
+  if (!p.has('error') && !(p.has('accessToken') && p.has('refreshToken'))) return null
+  const error = p.get('error')
+  if (error) return { error }
+  return {
+    tokens: {
+      accessToken: p.get('accessToken')!,
+      refreshToken: p.get('refreshToken')!,
+      tokenType: p.get('tokenType') ?? 'Bearer',
+      expiresIn: Number(p.get('expiresIn') ?? 0),
+    },
+  }
+}
+
+// Drop the URL fragment (keep path + query) so a reload doesn't reprocess it.
+function stripUrlFragment(): void {
+  if (typeof window === 'undefined') return
+  window.history.replaceState(null, '', window.location.pathname + window.location.search)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading')
   // Session identity (`status`/`user`) lives here, in React state, rather than in a
@@ -55,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // (2) it's the single source of truth that other mutations (e.g. account update)
   // sync back into via `setUser`, rather than each feature keeping its own copy.
   const [user, setUser] = useState<User | null>(null)
+  // Set when returning from a failed Google redirect, so the login page can show it.
+  const [googleError, setGoogleError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -63,6 +96,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setStatus('anonymous')
     })
+    // Returning from the backend's Google redirect? Establish the session from the
+    // fragment tokens (or surface the error) instead of the normal refresh bootstrap.
+    const gret = readGoogleReturn()
+    if (gret) {
+      if ('error' in gret) {
+        setGoogleError('Google sign-in failed. Please try again.')
+        setStatus('anonymous')
+        stripUrlFragment()
+      } else {
+        // Strip the fragment only once the session is established (or handling
+        // failed) — never before, so a cancelled StrictMode run can't swallow it.
+        afterTokens(gret.tokens, () => cancelled)
+          .then(() => {
+            if (!cancelled) stripUrlFragment()
+          })
+          .catch(() => {
+            if (cancelled) return
+            setGoogleError('Google sign-in failed. Please try again.')
+            setStatus('anonymous')
+            stripUrlFragment()
+          })
+      }
+      return () => {
+        cancelled = true
+      }
+    }
     if (!getRefreshToken()) {
       if (!cancelled) setStatus('anonymous')
       return () => {
@@ -123,13 +182,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [status])
 
-  async function afterTokens(t: AuthTokens) {
+  // isCancelled lets the bootstrap effect abort applying state after an unmount /
+  // StrictMode re-run; the user-triggered login/register paths pass the default.
+  async function afterTokens(t: AuthTokens, isCancelled: () => boolean = () => false) {
     // Set the access token first (me() needs it), but only persist the refresh
     // token once me() succeeds — otherwise a failed login would still leave a
     // usable refresh token in localStorage and silently log the user in on reload.
     setAccessToken(t.accessToken)
     try {
       const u = await me()
+      if (isCancelled()) return
       setRefreshToken(t.refreshToken)
       setUser(u)
       setStatus('authenticated')
@@ -144,9 +206,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (input: RegisterInput) =>
     afterTokens(await apiFetch<AuthTokens>('/v1/auth/register', { method: 'POST', body: input }))
-
-  const loginWithGoogle = async (idToken: string) =>
-    afterTokens(await apiFetch<AuthTokens>('/v1/auth/google', { method: 'POST', body: { idToken } }))
 
   const logout = async () => {
     const refreshToken = getRefreshToken()
@@ -163,7 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ status, user, login, register, loginWithGoogle, logout, setUser }}>
+    <Ctx.Provider value={{ status, user, googleError, clearGoogleError: () => setGoogleError(null), login, register, logout, setUser }}>
       {children}
     </Ctx.Provider>
   )

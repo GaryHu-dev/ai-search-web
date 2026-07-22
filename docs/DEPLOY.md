@@ -36,20 +36,21 @@ No Docker image for the frontend, no registry.
 
 | File | Role |
 |---|---|
+| `.env.production` | Committed production build config — `VITE_API_BASE_URL` baked into the bundle |
 | `.github/workflows/cd.yml` | Build the SPA → rsync `dist/` into `/opt/omniport/www` |
 | `.github/workflows/ci.yml` | PR/main checks: install → test → build |
 
 The reverse proxy (`Caddyfile`), server compose, and TLS live in the **backend**
 repo (`ai-search-api/deploy/`).
 
+The production API base (`https://omniport.online/api`) lives in the committed
+`.env.production` — it's a public value baked into the bundle, so no GitHub
+Variable is needed; `vite build` picks it up automatically.
+
 ## One-time GitHub setup
 
-**Settings → Secrets and variables → Actions**
-
-Variables:
-- `VITE_API_BASE_URL` = `https://omniport.online/api`  *(already set)*
-
-Secrets (same names/values as the backend repo — one deploy key works for both):
+**Settings → Secrets and variables → Actions → Secrets** (same names/values as the
+backend repo — one deploy key works for both):
 - `SSH_HOST` — server IP or hostname
 - `SSH_USER` — the deploy user
 - `SSH_KEY` — the deploy SSH **private** key
