@@ -28,7 +28,6 @@ interface AuthValue {
   status: Status
   user: User | null
   googleError: string | null
-  clearGoogleError(): void
   login(email: string, password: string): Promise<void>
   register(input: RegisterInput): Promise<void>
   logout(): Promise<void>
@@ -222,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ status, user, googleError, clearGoogleError: () => setGoogleError(null), login, register, logout, setUser }}>
+    <Ctx.Provider value={{ status, user, googleError, login, register, logout, setUser }}>
       {children}
     </Ctx.Provider>
   )

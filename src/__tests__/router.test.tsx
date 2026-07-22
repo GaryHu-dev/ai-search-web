@@ -34,7 +34,7 @@ describe('routing', () => {
 
   it('redirects anonymous users from / to /login', async () => {
     renderAt('/')
-    await waitFor(() => expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument())
   })
 
   it('renders the shell for authenticated users', async () => {
