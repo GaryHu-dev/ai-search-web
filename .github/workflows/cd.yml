@@ -1,10 +1,12 @@
 name: CD
 
-# On every push to main (after a PR merges) — or on demand — build the SPA and
+# Runs only after CI succeeds on main (or on manual dispatch): build the SPA and
 # rsync it into the directory Caddy serves on the server. The frontend is plain
 # static files; the reverse proxy + TLS live in the backend's Caddy stack.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -19,8 +21,13 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Deploy only when the triggering CI run passed (or when manually dispatched).
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # For a workflow_run trigger, check out exactly the commit CI validated.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
