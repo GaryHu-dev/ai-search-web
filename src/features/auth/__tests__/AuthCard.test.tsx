@@ -1,14 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
 import { MemoryRouter } from 'react-router-dom'
-import { server } from '../../../test/msw/server'
 import { AuthProvider } from '../../../lib/auth/auth-context'
 import { LoginPage } from '../LoginPage'
 import { clearTokens } from '../../../lib/api/token-store'
 
-const BASE = 'http://localhost:3000'
 const ui = () =>
   render(
     <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -18,29 +15,30 @@ const ui = () =>
     </MemoryRouter>,
   )
 
-describe('LoginPage', () => {
+describe('LoginPage (Google-only)', () => {
+  const original = window.location
   beforeEach(() => {
     clearTokens()
     localStorage.clear()
   })
-
-  it('shows a validation error for a bad email', async () => {
-    ui()
-    await userEvent.type(screen.getByLabelText(/^email$/i), 'not-an-email')
-    await userEvent.type(screen.getByLabelText(/^password$/i), 'secret')
-    await userEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
-    expect(await screen.findByText(/invalid email/i)).toBeInTheDocument()
+  afterEach(() => {
+    Object.defineProperty(window, 'location', { value: original, writable: true, configurable: true })
   })
 
-  it('maps a 401 to an inline "invalid email or password" message', async () => {
-    server.use(
-      http.post(`${BASE}/v1/auth/login`, () =>
-        HttpResponse.json({ statusCode: 401, error: 'Unauthorized', message: 'Invalid email or password' }, { status: 401 })),
-    )
+  it('shows only Google sign-in — no email/password or register', () => {
     ui()
-    await userEvent.type(screen.getByLabelText(/^email$/i), 'jane@acme.com')
-    await userEvent.type(screen.getByLabelText(/^password$/i), 'wrongpass')
-    await userEvent.click(screen.getByRole('button', { name: /^sign in$/i }))
-    expect(await screen.findByText(/invalid email or password/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
+    expect(screen.queryByLabelText(/^email$/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^password$/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /create account/i })).not.toBeInTheDocument()
+  })
+
+  it('navigates to the backend Google entry point on click', async () => {
+    const loc = { href: '', hash: '', pathname: '/', search: '' } as unknown as Location
+    Object.defineProperty(window, 'location', { value: loc, writable: true, configurable: true })
+    ui()
+    await userEvent.click(screen.getByRole('button', { name: /continue with google/i }))
+    expect(loc.href).toMatch(/\/v1\/auth\/google$/)
   })
 })
