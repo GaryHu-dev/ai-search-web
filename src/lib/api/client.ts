@@ -6,6 +6,10 @@ if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {
   throw new Error('VITE_API_BASE_URL must be set for production builds')
 }
 
+// Absolute URL for a backend path — used for full-page navigations (e.g. the
+// backend-driven Google OAuth redirect) that can't go through apiFetch.
+export const apiUrl = (path: string): string => `${BASE}${path}`
+
 export class ApiError extends Error {
   statusCode: number
   body: ApiErrorBody

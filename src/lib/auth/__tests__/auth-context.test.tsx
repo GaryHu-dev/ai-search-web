@@ -6,11 +6,12 @@ import { AuthProvider, useAuth } from '../auth-context'
 import { clearTokens, setRefreshToken, getRefreshToken } from '../../api/token-store'
 
 function Probe() {
-  const { status, user, login } = useAuth()
+  const { status, user, googleError, login } = useAuth()
   return (
     <div>
       <span data-testid="status">{status}</span>
       <span data-testid="user">{user?.email ?? '-'}</span>
+      <span data-testid="googleError">{googleError ?? '-'}</span>
       <button onClick={() => login('jane@acme.com', 'password123').catch(() => {})}>login</button>
     </div>
   )
@@ -20,6 +21,7 @@ describe('AuthProvider', () => {
   beforeEach(() => {
     clearTokens()
     localStorage.clear()
+    window.history.replaceState(null, '', '/')
   })
 
   it('starts anonymous with no refresh token', async () => {
@@ -91,6 +93,31 @@ describe('AuthProvider', () => {
 
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('anonymous'))
     expect(screen.getByTestId('user')).toHaveTextContent('-')
+  })
+
+  it('establishes the session from Google-return tokens in the URL fragment', async () => {
+    window.location.hash = '#accessToken=a-tok&refreshToken=r-tok&tokenType=Bearer&expiresIn=900'
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    expect(screen.getByTestId('user')).toHaveTextContent('jane@acme.com')
+    expect(getRefreshToken()).toBe('r-tok') // persisted only after me() succeeded
+    expect(window.location.hash).toBe('') // fragment stripped so a reload doesn't reprocess it
+  })
+
+  it('surfaces an error and stays anonymous on a failed Google return', async () => {
+    window.location.hash = '#error=google_auth_failed'
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('anonymous'))
+    expect(screen.getByTestId('googleError')).toHaveTextContent(/Google sign-in failed/i)
+    expect(getRefreshToken()).toBeNull()
   })
 
   it('does not blow up if the provider unmounts before bootstrap me() resolves', async () => {

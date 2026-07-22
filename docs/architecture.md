@@ -128,8 +128,8 @@ auth layer force a logout when refresh fails.
 - **logout():** best-effort `POST /v1/auth/logout`, then always clear local state
   (the network call is allowed to fail, e.g. right after account deletion).
 
-`useAuth()` exposes `{ status: 'loading'|'authenticated'|'anonymous', user, login,
-register, loginWithGoogle, logout, setUser }`.
+`useAuth()` exposes `{ status: 'loading'|'authenticated'|'anonymous', user,
+googleError, clearGoogleError, login, register, logout, setUser }`.
 
 ---
 
@@ -193,12 +193,14 @@ react-hook-form; server state stays in Query.
 
 ## 8. Google sign-in (`features/auth/google.ts`)
 
-Enabled only when `VITE_GOOGLE_CLIENT_ID` is set. Loads Google Identity Services
-once, initialises with the client id, and renders Google’s official button
-transparently over our styled “Continue with Google” button (so styling is ours,
-the ID-token flow is Google’s). The returned ID token goes to
-`loginWithGoogle` → `POST /v1/auth/google`. Activation also requires the backend’s
-`GOOGLE_CLIENT_ID` and the app origin in the client’s Authorized JavaScript origins.
+Backend-driven OAuth (authorization-code / redirect flow); the frontend holds no
+Google client id. `startGoogleLogin()` navigates the whole browser to the backend’s
+`/v1/auth/google`, which redirects to Google and, after the callback, back to
+`GOOGLE_POST_LOGIN_REDIRECT` with the session tokens in the URL **fragment**
+(`#accessToken=…&refreshToken=…&tokenType=…&expiresIn=…`, or `#error=…`). On load
+`AuthProvider` reads that fragment (`readGoogleReturn`), establishes the session,
+then strips the fragment. Requires `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` /
+`GOOGLE_CALLBACK_URL` / `GOOGLE_POST_LOGIN_REDIRECT` on the backend.
 
 ---
 
@@ -224,9 +226,11 @@ the ID-token flow is Google’s). The returned ID token goes to
 
 ## 10. Environment & scripts
 
-`.env` (see `.env.example`):
-- `VITE_API_BASE_URL` — backend base URL (default `http://localhost:3000`).
-- `VITE_GOOGLE_CLIENT_ID` — optional; enables the Google button.
+`.env` (see `.env.example`) for local dev; production values live in the committed
+`.env.production`:
+- `VITE_API_BASE_URL` — backend base URL (`http://localhost:3000` locally,
+  `https://omniport.online/api` in `.env.production`).
+- Google sign-in needs no frontend env — it's configured entirely on the backend.
 
 Scripts: `pnpm dev` · `pnpm build` (tsc + vite) · `pnpm test` · `pnpm typecheck` ·
 `pnpm gen:api` (regenerate `lib/api/generated.ts` from the live `docs-json`).
