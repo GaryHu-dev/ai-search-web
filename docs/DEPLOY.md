@@ -1,4 +1,4 @@
-# Deployment (GEO web)
+# Deployment (Omniport web)
 
 The frontend is a static SPA. It is **not** containerised — it's built into `dist/`
 and rsynced onto the server, where the backend's **Caddy** already serves it and

@@ -5,9 +5,10 @@ import { Spinner } from './components/Spinner'
 import { AppShell } from './layouts/AppShell'
 import { LoginPage } from './features/auth/LoginPage'
 import { AuthCallback } from './features/auth/AuthCallback'
-import { OverviewPage } from './features/overview/OverviewPage'
-import { FilesPage } from './features/files/FilesPage'
+import { DashboardPage } from './features/dashboard/DashboardPage'
+import { ContentPage } from './features/content/ContentPage'
 import { OptimizePage } from './features/optimize/OptimizePage'
+import { NotificationsPage } from './features/notifications/NotificationsPage'
 import { AccountPage } from './features/account/AccountPage'
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -24,7 +25,7 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
 }
 
 // Route table. /login is public; everything under "/" is gated by ProtectedRoute
-// and rendered inside AppShell (Overview / Files / Optimize / Account).
+// and rendered inside AppShell (Dashboard / Content / Optimize / Notifications / Account).
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
   // Landing route for the backend's Google OAuth redirect. Must be a real route
@@ -39,9 +40,10 @@ export const routes: RouteObject[] = [
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <OverviewPage /> },
-      { path: 'files', element: <FilesPage /> },
+      { index: true, element: <DashboardPage /> },
+      { path: 'content', element: <ContentPage /> },
       { path: 'optimize', element: <OptimizePage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       { path: 'account', element: <AccountPage /> },
     ],
   },

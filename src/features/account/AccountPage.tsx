@@ -13,8 +13,11 @@ import { errorText, avatarInitial } from '../../lib/format'
 const schema = z.object({ displayName: z.string().max(100) })
 type Values = z.infer<typeof schema>
 
-// Account screen: edit the display name (PATCH), a read-only email, and a
-// danger-zone deletion that clears the whole session and returns to /login.
+const THEMES = ['Brewing guides', 'Coffee origins', 'Sustainability', 'Product care']
+
+// Account: real profile edit (PATCH) + danger-zone deletion, plus the
+// Omniport workspace settings — connected stores, content strategy and plan.
+// The store/strategy/plan blocks are static previews until those endpoints ship.
 export function AccountPage() {
   const { user, setUser, logout } = useAuth()
   const update = useUpdateProfile()
@@ -67,6 +70,8 @@ export function AccountPage() {
   }
 
   const inputClass = 'field-input px-3 py-3 text-[14px]'
+  const sectionClass = 'flex flex-col rounded-2xl border border-line bg-card'
+  const headClass = 'mb-2.5 ml-1 text-[12px] font-bold uppercase tracking-wider text-faint'
 
   return (
     <div className="flex flex-col gap-5">
@@ -75,10 +80,11 @@ export function AccountPage() {
         <p className="text-[14.5px] text-muted">Manage your profile and workspace.</p>
       </div>
 
+      {/* Profile */}
       <section className="flex flex-col gap-[18px] rounded-2xl border border-line bg-card p-[22px]">
         <div>
           <div className="text-sm font-bold">Profile</div>
-          <div className="text-[12.5px] text-faint">This is how you'll appear in GEO.</div>
+          <div className="text-[12.5px] text-faint">This is how you'll appear in Omniport.</div>
         </div>
         <div className="flex items-center gap-3.5">
           <span className="grad-avatar grid h-[52px] w-[52px] place-items-center rounded-full text-xl font-bold">
@@ -121,14 +127,61 @@ export function AccountPage() {
         </form>
       </section>
 
-      <section className="flex flex-col gap-3.5 rounded-2xl border border-line bg-card p-[22px]">
-        <div className="text-sm font-bold">Plan</div>
-        <div className="flex items-center justify-between text-[13.5px]">
-          <span className="text-muted">Current plan</span>
-          <span className="rounded-full bg-good-soft px-2.5 py-0.5 text-[11.5px] font-semibold text-good">Free</span>
+      {/* Connected stores */}
+      <div>
+        <div className={headClass}>Connected stores</div>
+        <div className={sectionClass}>
+          <div className="flex items-center gap-3 px-[17px] py-3.5">
+            <span className="grid h-[26px] w-[26px] flex-none place-items-center rounded-md bg-[#16A34A] text-[12px] font-bold text-white">S</span>
+            <span className="flex-1 text-[13.5px] font-semibold">Brew &amp; Co <span className="font-normal text-faint">· brewandco.myshopify.com</span></span>
+            <span className="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-good">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6 9 17l-5-5" /></svg> Connected
+            </span>
+          </div>
+          <div className="flex items-center gap-3 border-t border-line px-[17px] py-3.5">
+            <span className="grid h-[26px] w-[26px] flex-none place-items-center rounded-md bg-[#21759B] text-[12px] font-bold text-white">W</span>
+            <span className="flex-1 text-[13.5px] font-semibold text-muted">WordPress <span className="font-normal text-faint">· not connected</span></span>
+            <button className="rounded-lg border border-line-strong bg-card px-3 py-1.5 text-[12.5px] font-semibold hover:bg-card-2">Connect</button>
+          </div>
         </div>
-      </section>
+      </div>
 
+      {/* Content strategy */}
+      <div>
+        <div className={headClass}>Content strategy · drives autopilot</div>
+        <div className={sectionClass}>
+          <SetRow k="Themes">
+            <div className="flex flex-wrap gap-1.5">
+              {THEMES.map((t) => <span key={t} className="rounded-full bg-hi-soft px-2.5 py-1 text-[11.5px] font-semibold text-hi-deep">{t}</span>)}
+            </div>
+          </SetRow>
+          <SetRow k="Cadence"><span className="font-semibold">3 posts / week</span></SetRow>
+          <SetRow k="Tone"><span className="font-semibold">Friendly expert</span></SetRow>
+          <SetRow k="Publishing window"><span className="font-semibold">Tue &amp; Thu, 9:00 AM</span></SetRow>
+        </div>
+      </div>
+
+      {/* Plan & billing */}
+      <div>
+        <div className={headClass}>Plan &amp; billing</div>
+        <div className={sectionClass}>
+          <SetRow k="Plan">
+            <span className="font-semibold">Growth</span>
+            <span className="rounded-full bg-good-soft px-2.5 py-0.5 text-[11.5px] font-semibold text-good">active</span>
+            <button className="ml-auto rounded-lg border border-line-strong bg-card px-3 py-1.5 text-[12.5px] font-semibold hover:bg-card-2">Upgrade</button>
+          </SetRow>
+          <SetRow k="Posts this month">
+            <span className="font-semibold tabular-nums">12 / 20</span>
+            <span className="ml-1 h-2 w-[180px] max-w-[40%] overflow-hidden rounded bg-card-2"><span className="block h-full rounded bg-[linear-gradient(90deg,#5B4BF0,#7C6BFF)]" style={{ width: '60%' }} /></span>
+          </SetRow>
+          <SetRow k="Billing">
+            <span className="text-muted">Next invoice Aug 1 · $49/mo</span>
+            <button className="ml-auto rounded-lg border border-line-strong bg-card px-3 py-1.5 text-[12.5px] font-semibold hover:bg-card-2">Manage</button>
+          </SetRow>
+        </div>
+      </div>
+
+      {/* Danger zone */}
       <div className="flex flex-col items-start gap-4 rounded-2xl border border-bad-soft p-5 sm:flex-row sm:items-center">
         <div>
           <div className="text-[14.5px] font-semibold">Delete account</div>
@@ -141,6 +194,15 @@ export function AccountPage() {
           Delete account
         </button>
       </div>
+    </div>
+  )
+}
+
+function SetRow({ k, children }: { k: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2.5 border-t border-line px-[17px] py-3.5 text-[13.5px] first:border-t-0">
+      <span className="w-[130px] flex-none text-muted">{k}</span>
+      <div className="flex flex-1 flex-wrap items-center gap-2">{children}</div>
     </div>
   )
 }

@@ -1,8 +1,10 @@
-# GEO Web — Architecture
+# Omniport Web — Architecture
 
-The frontend for **GEO**, a Generative Engine Optimization platform. This
-milestone is a React SPA that exercises the existing backend end to end (auth,
-account, files) and is built as the growable foundation for the GEO product.
+The frontend for **Omniport**, a content-operations platform for Shopify &
+WordPress stores (autopilot SEO + GEO content). A React SPA: auth and the account
+area are wired to the backend end to end; the product surfaces (Dashboard,
+Content, Optimize, Notifications) are presentational (mock data) for now and share
+the real shell, routing, design system, and tests.
 
 - **Stack:** Vite · React 18 · TypeScript · React Router · TanStack Query ·
   react-hook-form + zod · Tailwind CSS · Vitest + Testing Library + MSW ·
@@ -41,12 +43,12 @@ src/
     AppShell.tsx        Authenticated shell: collapsible sidebar, topbar, notifications
 
   features/             One folder per product area (self-contained)
-    auth/               login/register, Google sign-in, zod schemas
-    overview/           dashboard landing + visibility preview card
-    files/              upload / list / search / sort / download / delete
-    account/            profile edit + delete account
-    optimize/           GEO audit: URL form, create → poll → findings, history
-    # visibility/ competitors/  ← future GEO features slot in here
+    auth/               Google sign-in (LoginPage/AuthCard), OAuth callback
+    dashboard/          autopilot overview: metrics, content pipeline, strategy
+    content/            content workbench: generated post + SEO/GEO panels
+    optimize/           SEO/GEO opportunities + AI-answer coverage
+    notifications/      activity feed with tab filters
+    account/            profile edit + delete (real) · stores/strategy/plan (mock)
 
   styles/
     tokens.css          Design tokens (light + dark), reduced-motion
@@ -129,15 +131,21 @@ auth layer force a logout when refresh fails.
   (the network call is allowed to fail, e.g. right after account deletion).
 
 `useAuth()` exposes `{ status: 'loading'|'authenticated'|'anonymous', user,
-googleError, clearGoogleError, login, register, logout, setUser }`.
+googleError, login, register, logout, setUser }`. `login`/`register` remain for
+completeness, but the UI is Google-only — `LoginPage` renders just the Google
+button.
 
 ---
 
 ## 5. Routing (`router.tsx`)
 
 - `/login` → `LoginPage` (public).
-- `/` → `ProtectedRoute` → `AppShell` with child routes: index `OverviewPage`,
-  `files` `FilesPage`, `optimize` `OptimizePage`, `account` `AccountPage`.
+- `/auth/callback` → `AuthCallback` (public) — the landing route for the backend's
+  Google OAuth redirect; a real route (not the catch-all) so it doesn't strip the
+  token fragment before `AuthProvider` consumes it.
+- `/` → `ProtectedRoute` → `AppShell` with child routes: index `DashboardPage`,
+  `content` `ContentPage`, `optimize` `OptimizePage`, `notifications`
+  `NotificationsPage`, `account` `AccountPage`.
 - `ProtectedRoute` renders nothing while `status === 'loading'`, redirects to
   `/login` when `anonymous`, else renders children.
 
@@ -145,23 +153,18 @@ googleError, clearGoogleError, login, register, logout, setUser }`.
 
 ## 6. Server state (TanStack Query)
 
-Feature data uses Query hooks in `features/<area>/queries.ts`, all built on
-`apiFetch`:
+Server state uses Query hooks in `features/<area>/queries.ts`, built on `apiFetch`.
+Today only **Account** talks to the backend:
 
-- **Files:** `useFiles` is an **infinite query** for cursor pagination
-  (`getNextPageParam: p => p.nextCursor ?? undefined`). `useUploadFile` /
-  `useDeleteFile` mutate then `invalidateQueries(['files'])` (prefix match).
-  `downloadFile` uses `raw:true` → blob → anchor click (revoke deferred).
-- **Account:** `useUpdateProfile` (PATCH) / `useDeleteAccount` (DELETE). The updated
-  user is written back into `AuthProvider` via `setUser` (single source of truth).
-- **Optimize (GEO audit):** `useCreateAudit` (`POST /v1/audits`) kicks off an audit
-  for a URL; `useAudit` (`GET /v1/audits/:id`) polls via `refetchInterval` until the
-  status is terminal (`COMPLETED`/`FAILED`), then renders the six finding
-  dimensions generically (`findings.map`, no hardcoded dimension list); `useAudits`
-  (`GET /v1/audits`) is a cursor-paginated **infinite query**, like `useFiles`, and
-  backs the run history list.
+- **Account:** `useUpdateProfile` (PATCH `/v1/users/me`) / `useDeleteAccount`
+  (DELETE `/v1/users/me`). The updated user is written back into `AuthProvider` via
+  `setUser` (single source of truth).
 
-Local UI state (form values, search box, toggles) stays in components /
+The Dashboard, Content, Optimize, and Notifications pages are **presentational** —
+they render hard-coded sample data (no queries) until the content APIs exist, at
+which point each grows a `queries.ts` following the Account pattern.
+
+Local UI state (tab selection, form values, toggles) stays in components /
 react-hook-form; server state stays in Query.
 
 ---
@@ -210,17 +213,19 @@ then strips the fragment. Requires `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` /
   envelope in `test/msw/handlers.ts`; per-test overrides via `server.use(...)`.
   `test/setup.ts` installs a deterministic in-memory `localStorage` and the MSW
   lifecycle. Priority coverage: client refresh/rotation/single-flight, auth
-  bootstrap, form error mapping, files pagination, profile update.
+  bootstrap, profile update, each product page's render, and the sidebar nav walk.
 - **Layout:** tests live next to the code they cover, in a per-directory
   `__tests__/` folder — e.g. `src/lib/api/__tests__/client.test.ts`,
   `src/lib/auth/__tests__/auth-context.test.tsx`,
-  `src/features/optimize/__tests__/queries.test.tsx`. Shared test infrastructure
-  (Vitest setup, MSW server + handlers) lives in `src/test/`, not next to any one
-  feature.
+  `src/features/dashboard/__tests__/DashboardPage.test.tsx`. Each product page has a
+  render/interaction test, and `src/__tests__/router.test.tsx` walks the sidebar
+  end to end (authenticated → click through pages → collapse). Shared test
+  infrastructure (Vitest setup, MSW server + handlers) lives in `src/test/`.
 - **End-to-end:** Playwright (`e2e/flows.mjs`, run via `pnpm test:e2e`) drives real
-  Chrome against the running backend (register → login →
-  upload/search/download/delete → rename → logout → error states). Needs a live
-  backend and dev server; run ad hoc during integration, not part of `pnpm test`.
+  Chrome against the dev server. Auth is Google-only (backend-driven OAuth), so a
+  logged-in journey can't run headlessly; the smoke covers what's reachable
+  pre-auth — the login page renders and the protected route redirects anonymous
+  users to `/login`. Needs the dev server; not part of `pnpm test`.
 
 ---
 
@@ -244,5 +249,5 @@ Scripts: `pnpm dev` · `pnpm build` (tsc + vite) · `pnpm test` · `pnpm typeche
   transient feedback → `useToast`; destructive confirms → `useConfirm`.
 - Style through tokens/Tailwind mapped colours; avoid hardcoded hex except in the
   fixed brand gradient and the theme-aware `.tile-*` / data-colour classes.
-- New product areas: add `features/<area>/` and a nav entry; the sidebar reserves
-  “coming soon” slots for the GEO features.
+- New product areas: add `features/<area>/`, a route in `router.tsx`, and a nav
+  entry in `AppShell`'s `NAV` list.

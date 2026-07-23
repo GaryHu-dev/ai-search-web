@@ -1,93 +1,95 @@
-import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { useCreateAudit } from './queries'
-import { normalizeUrl } from './url'
-import { AuditResult } from './AuditResult'
-import { AuditHistory } from './AuditHistory'
-import { Spinner } from '../../components/Spinner'
-import { useToast } from '../../components/toast'
-import { errorText } from '../../lib/format'
+import { Link } from 'react-router-dom'
 
-// Optimize screen: submit a site URL, create a GEO audit, then poll + render its
-// six-dimension findings. Arriving with ?url= (from the Overview "Analyze" button)
-// pre-fills the field and auto-runs the audit once.
-export function OptimizePage() {
-  const [params] = useSearchParams()
-  // Strip a leading protocol for display — the field renders a decorative "https://" prefix,
-  // and ?url= arrives already normalized (e.g. https://acme.io/) from the Overview hero.
-  const [value, setValue] = useState(() => (params.get('url') ?? '').replace(/^https?:\/\//i, ''))
-  const [invalid, setInvalid] = useState(false)
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const toast = useToast()
-  const create = useCreateAudit()
+// Optimize: prioritized SEO + GEO opportunities for the connected site, plus
+// AI-answer coverage. Static/presentational for now.
 
-  // Selecting a history row loads that audit and mirrors its URL into the input
-  // (protocol stripped, matching the field's decorative "https://" prefix) so the
-  // user can see what was analyzed and re-run it via the Analyze button.
-  function selectHistory(id: string, url: string) {
-    setActiveId(id)
-    setValue(url.replace(/^https?:\/\//i, ''))
-  }
-
-  function submit(raw: string) {
-    const url = normalizeUrl(raw)
-    if (!url) { setInvalid(true); return }
-    setInvalid(false)
-    create.mutate(url, {
-      onSuccess: (audit) => setActiveId(audit.id),
-      onError: (e) => toast('error', errorText(e)),
-    })
-  }
-
-  // Auto-run once when landing with a valid ?url= from the Overview hero.
-  const kicked = useRef(false)
-  useEffect(() => {
-    if (kicked.current) return
-    const incoming = params.get('url')
-    if (incoming && normalizeUrl(incoming)) { kicked.current = true; submit(incoming) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
+function ScoreCard({ value, color, title, note }: { value: number; color: string; title: string; note: string }) {
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex items-center gap-4 rounded-2xl border border-line bg-card p-[17px] shadow-[0_14px_34px_-22px_rgba(14,19,48,.35)]">
+      <div
+        className="relative grid h-[66px] w-[66px] flex-none place-items-center rounded-full"
+        style={{ background: `conic-gradient(${color} ${value}%, var(--card-2) 0)` }}
+      >
+        <span className="absolute inset-[6px] rounded-full bg-card" />
+        <b className="relative text-lg font-extrabold">{value}</b>
+      </div>
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Optimize</h2>
-        <p className="text-[14.5px] text-muted">Audit any page for how well AI answer engines can find, read, and cite it.</p>
+        <div className="text-[15px] font-bold">{title}</div>
+        <div className="text-[13px] text-muted">{note}</div>
+      </div>
+    </div>
+  )
+}
+
+type Opp = { kind: 'seo' | 'geo'; icon: JSX.Element; title: string; desc: string; impact: 'High' | 'Medium'; action: string; to?: string }
+const search = <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" strokeLinecap="round" /></svg>
+const star = <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M12 3l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 8.7l5.4-.8z" strokeLinejoin="round" /></svg>
+const lines = <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M4 7h16M4 12h10M4 17h7" /></svg>
+
+const OPPS: Opp[] = [
+  { kind: 'seo', icon: search, title: 'Rank for “best coffee grinder”', desc: "You're #14 — competitors have in-depth guides. Generate one to compete.", impact: 'High', action: 'Generate', to: '/content' },
+  { kind: 'geo', icon: star, title: 'Add FAQ schema to 3 posts', desc: 'Structured data makes these eligible to be cited in AI answers.', impact: 'High', action: 'Fix' },
+  { kind: 'seo', icon: lines, title: 'Expand thin content: “Coffee storage tips”', desc: 'Only 320 words — expand to fully answer the query and rank higher.', impact: 'Medium', action: 'Expand' },
+  { kind: 'seo', icon: lines, title: '12 pages missing meta descriptions', desc: 'Auto-write descriptions to improve click-through from search.', impact: 'Medium', action: 'Fix all' },
+]
+
+const COVERAGE: { q: string; cited: boolean; note: string }[] = [
+  { q: '“How should you store coffee beans?”', cited: true, note: 'Cited · ChatGPT' },
+  { q: '“What grind size for pour over?”', cited: true, note: 'Cited · Perplexity' },
+  { q: '“Best coffee grinder under $200?”', cited: false, note: 'Not cited — competitor is' },
+]
+
+export function OptimizePage() {
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-[13.5px] text-muted">
+        What to improve on <b className="text-ink"><span className="mr-0.5 inline-grid h-4 w-4 place-items-center rounded bg-[#16A34A] align-[-3px] text-[9px] font-bold text-white">S</span> Brew &amp; Co</b> to win more search traffic and AI citations.
+      </p>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <ScoreCard value={88} color="var(--c2)" title="SEO health" note="Strong. 12 pages still missing meta descriptions." />
+        <ScoreCard value={74} color="var(--c3)" title="GEO cite-readiness" note="Add structured data to be quoted by AI answers." />
       </div>
 
-      <form
-        onSubmit={(e) => { e.preventDefault(); submit(value) }}
-        className="flex max-w-[620px] flex-col gap-1.5"
-        noValidate
-      >
-        <div className="flex gap-2.5">
-          <div className="flex flex-1 items-center gap-2 rounded-xl border border-line-strong bg-card px-3">
-            <span className="text-[13px] text-faint">https://</span>
-            <input
-              value={value}
-              onChange={(e) => { setValue(e.target.value); if (invalid) setInvalid(false) }}
-              placeholder="yourdomain.com/page"
-              aria-label="Website URL"
-              aria-invalid={invalid}
-              aria-describedby={invalid ? 'url-error' : undefined}
-              className="w-full min-w-0 bg-transparent py-3 text-[14.5px] outline-none"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={create.isPending}
-            className="grad-primary flex items-center gap-2 rounded-xl px-5 py-3 text-[14px] font-semibold disabled:opacity-70"
-          >
-            {create.isPending && <Spinner className="h-4 w-4" />}
-            Analyze
-          </button>
+      {/* opportunities */}
+      <section className="rounded-2xl border border-line bg-card shadow-[0_14px_34px_-22px_rgba(14,19,48,.35)]">
+        <div className="flex items-center gap-2.5 border-b border-line px-[17px] py-3.5">
+          <h3 className="text-sm font-bold">Opportunities</h3>
+          <span className="ml-auto text-[12.5px] text-faint">ranked by impact</span>
         </div>
-        {invalid && <p id="url-error" className="text-[13px] text-bad">Enter a valid website, e.g. acme.com</p>}
-      </form>
+        {OPPS.map((o) => (
+          <div key={o.title} className="flex items-center gap-3.5 border-t border-line px-[17px] py-3.5 first:border-t-0">
+            <span className={`grid h-[34px] w-[34px] flex-none place-items-center rounded-[9px] ${o.kind === 'seo' ? 'bg-[color-mix(in_srgb,var(--c2)_14%,transparent)] text-c2' : 'bg-[color-mix(in_srgb,var(--c3)_15%,transparent)] text-c3'}`}>{o.icon}</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13.5px] font-semibold">{o.title}</div>
+              <div className="text-[12.5px] text-muted">{o.desc}</div>
+            </div>
+            <span className={`rounded-md px-2 py-[3px] text-[10.5px] font-bold uppercase tracking-wide ${o.impact === 'High' ? 'bg-bad-soft text-bad' : 'bg-[color-mix(in_srgb,var(--c3)_14%,transparent)] text-c3'}`}>{o.impact}</span>
+            {o.to ? (
+              <Link to={o.to} className="grad-primary rounded-lg px-3 py-2 text-[13px] font-semibold">{o.action}</Link>
+            ) : (
+              <button className="rounded-lg border border-line-strong bg-card px-3 py-2 text-[13px] font-semibold hover:bg-card-2">{o.action}</button>
+            )}
+          </div>
+        ))}
+      </section>
 
-      {activeId && <AuditResult id={activeId} />}
-
-      <AuditHistory activeId={activeId} onSelect={selectHistory} />
+      {/* AI answer coverage */}
+      <section className="rounded-2xl border border-line bg-card shadow-[0_14px_34px_-22px_rgba(14,19,48,.35)]">
+        <div className="flex items-center gap-2.5 border-b border-line px-[17px] py-3.5">
+          <h3 className="text-sm font-bold">AI answer coverage</h3>
+          <span className="ml-auto text-[12.5px] text-faint">are you cited?</span>
+        </div>
+        {COVERAGE.map((c) => (
+          <div key={c.q} className="flex items-center gap-3 border-t border-line px-[17px] py-3 text-[13px] first:border-t-0">
+            <span className="flex-1">{c.q}</span>
+            <span className={`inline-flex items-center gap-1.5 text-[11.5px] font-bold ${c.cited ? 'text-good' : 'text-faint'}`}>
+              <span className="h-[7px] w-[7px] rounded-full" style={{ background: c.cited ? 'var(--good)' : 'var(--faint)' }} />
+              {c.note}
+            </span>
+          </div>
+        ))}
+      </section>
     </div>
   )
 }
