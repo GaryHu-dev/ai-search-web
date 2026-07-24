@@ -1,10 +1,12 @@
 # Omniport Web — Architecture
 
-The frontend for **Omniport**, a content-operations platform for Shopify &
-WordPress stores (autopilot SEO + GEO content). A React SPA. **Auth, account,
-notifications, and the Optimize GEO/SEO audit are wired to the backend end to
-end**; **Dashboard and Content** are still presentational (mock data) until their
-content APIs exist, and share the same shell, routing, design system, and tests.
+The frontend for **Omniport**, a **content-operations platform** for Shopify &
+WordPress stores: it runs a store's content end to end — strategy, generation,
+optimization, publishing, and reporting — with search / AI-answer (GEO/SEO) tuning
+as one capability rather than the whole product. A React SPA. **Auth, account,
+notifications, and the Optimize audit are wired to the backend end to end**;
+**Dashboard and Content** are still presentational (mock data) until their content
+APIs exist, and share the same shell, routing, design system, and tests.
 
 - **Stack:** Vite · React 18 · TypeScript · React Router · TanStack Query ·
   react-hook-form + zod · Tailwind CSS · Vitest + Testing Library + MSW ·

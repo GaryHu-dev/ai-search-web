@@ -1,15 +1,19 @@
 # Omniport Web
 
-The frontend for **Omniport**, a content-operations platform for Shopify &
-WordPress stores: autopilot SEO + GEO content — generate posts, optimize them
-for search and AI answers, publish on a schedule, and review what shipped.
+The frontend for **Omniport**, a **content-operations platform** for Shopify &
+WordPress stores. Omniport runs a store's content end to end — set a strategy,
+generate and optimize posts, publish on a schedule, and report on results. Search
+and AI-answer (GEO/SEO) optimization is one capability inside that workflow, not
+the whole product.
 
-Auth (Google sign-in), account, notifications, and the Optimize GEO/SEO audit are
-wired to the backend end to end. Dashboard and the Content workbench are currently
+Auth (Google sign-in), account, notifications, and the Optimize audit are wired to
+the backend end to end. Dashboard and the Content workbench are currently
 **presentational (mock data)**, pending their content APIs; they share the real
 app shell, routing, design system, and tests.
 
-See [`docs/architecture.md`](docs/architecture.md) for the design (routing,
+See [`docs/product.md`](docs/product.md) for the product overview (what it is, who
+it's for, the capability map, and what's built vs planned), and
+[`docs/architecture.md`](docs/architecture.md) for the engineering design (routing,
 provider composition, API client, auth, testing conventions, etc.).
 
 ## Stack

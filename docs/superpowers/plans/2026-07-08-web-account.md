@@ -1,5 +1,8 @@
 # GEO Web — Account Implementation Plan (Plan 3 of 3)
 
+> **Archived** — from the earlier GEO milestone, superseded by the Omniport
+> content-operations platform. Kept for history; not the current design.
+
 > Builds on Plan 1 (`apiFetch`, `useAuth`, `AppShell`). REQUIRED SUB-SKILL: subagent-driven-development or executing-plans.
 
 **Goal:** Ship the Account screen: view profile, edit display name, delete account.
