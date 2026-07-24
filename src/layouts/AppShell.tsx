@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth/auth-context'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { avatarInitial } from '../lib/format'
 import { IconOverview, IconContent, IconOptimize, IconAccount, IconBell, IconPanel } from '../components/icons'
 import { useUnreadCount } from '../features/notifications/queries'
+import { NotificationsBell } from '../features/notifications/NotificationsBell'
 
 const TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -174,14 +175,7 @@ export function AppShell() {
             <IconPanel className="h-[17px] w-[17px]" />
           </button>
           <h1 className="text-[17px] font-bold tracking-tight">{title}</h1>
-          <Link
-            to="/notifications"
-            aria-label="Notifications"
-            className="relative ml-auto grid h-9 w-9 place-items-center rounded-lg border border-line bg-card text-muted hover:bg-card-2 hover:text-ink"
-          >
-            <IconBell className="h-[17px] w-[17px]" />
-            {unread > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-bad ring-2 ring-[var(--bg)]" />}
-          </Link>
+          <NotificationsBell />
         </header>
         <div id="main" tabIndex={-1} className="w-full max-w-[1080px] px-4 py-7 outline-none md:px-6">
           <Outlet />
