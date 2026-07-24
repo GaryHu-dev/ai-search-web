@@ -4,10 +4,10 @@ The frontend for **Omniport**, a content-operations platform for Shopify &
 WordPress stores: autopilot SEO + GEO content — generate posts, optimize them
 for search and AI answers, publish on a schedule, and review what shipped.
 
-Auth (Google sign-in) and the account area are wired to the backend end to end.
-The product surfaces — Dashboard, Content workbench, Optimize, Notifications —
-are currently **presentational (mock data)**, pending the content APIs; they
-share the real app shell, routing, design system, and tests.
+Auth (Google sign-in), account, notifications, and the Optimize GEO/SEO audit are
+wired to the backend end to end. Dashboard and the Content workbench are currently
+**presentational (mock data)**, pending their content APIs; they share the real
+app shell, routing, design system, and tests.
 
 See [`docs/architecture.md`](docs/architecture.md) for the design (routing,
 provider composition, API client, auth, testing conventions, etc.).

@@ -57,10 +57,10 @@ describe('routing', () => {
     expect(await screen.findByRole('heading', { name: /how to store coffee beans for maximum freshness/i })).toBeInTheDocument()
 
     await userEvent.click(within(nav).getByRole('link', { name: 'Optimize' }))
-    expect(await screen.findByRole('heading', { name: /opportunities/i })).toBeInTheDocument()
+    expect(await screen.findByLabelText(/website url/i)).toBeInTheDocument()
 
     await userEvent.click(within(nav).getByRole('link', { name: 'Notifications' }))
-    expect(await screen.findByText(/1 post needs your review/i)).toBeInTheDocument()
+    expect(await screen.findByText(/audit completed/i)).toBeInTheDocument()
 
     await userEvent.click(within(nav).getByRole('link', { name: 'Account' }))
     expect(await screen.findByRole('button', { name: /delete account/i })).toBeInTheDocument()

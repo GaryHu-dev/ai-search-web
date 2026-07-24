@@ -1,27 +1,36 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { OptimizePage } from '../OptimizePage'
 
-const ui = () => render(<OptimizePage />, { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> })
+function ui() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const Wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  return render(<OptimizePage />, { wrapper: Wrapper })
+}
 
 describe('OptimizePage', () => {
-  it('renders SEO/GEO health scores and prioritized opportunities', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('renders the analyze form and an empty run history', async () => {
     ui()
-    expect(screen.getByText(/SEO health/i)).toBeInTheDocument()
-    expect(screen.getByText(/GEO cite-readiness/i)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /opportunities/i })).toBeInTheDocument()
-    expect(screen.getByText(/Rank for/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/website url/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /analyze/i })).toBeInTheDocument()
+    expect(await screen.findByText(/no audits yet/i)).toBeInTheDocument()
   })
 
-  it('routes the generate opportunity to the content workbench', () => {
+  it('runs an audit and renders its findings', async () => {
     ui()
-    expect(screen.getByRole('link', { name: /generate/i })).toHaveAttribute('href', '/content')
+    await userEvent.type(screen.getByLabelText(/website url/i), 'acme.io')
+    await userEvent.click(screen.getByRole('button', { name: /analyze/i }))
+    expect(await screen.findByText(/add a concise answer/i)).toBeInTheDocument()
   })
 
-  it('shows AI answer coverage with cited state', () => {
+  it('rejects an empty URL', async () => {
     ui()
-    expect(screen.getByRole('heading', { name: /AI answer coverage/i })).toBeInTheDocument()
-    expect(screen.getByText(/Not cited — competitor is/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /analyze/i }))
+    expect(await screen.findByText(/enter a valid website url/i)).toBeInTheDocument()
   })
 })

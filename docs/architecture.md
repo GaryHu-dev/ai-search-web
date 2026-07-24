@@ -1,10 +1,10 @@
 # Omniport Web — Architecture
 
 The frontend for **Omniport**, a content-operations platform for Shopify &
-WordPress stores (autopilot SEO + GEO content). A React SPA: auth and the account
-area are wired to the backend end to end; the product surfaces (Dashboard,
-Content, Optimize, Notifications) are presentational (mock data) for now and share
-the real shell, routing, design system, and tests.
+WordPress stores (autopilot SEO + GEO content). A React SPA. **Auth, account,
+notifications, and the Optimize GEO/SEO audit are wired to the backend end to
+end**; **Dashboard and Content** are still presentational (mock data) until their
+content APIs exist, and share the same shell, routing, design system, and tests.
 
 - **Stack:** Vite · React 18 · TypeScript · React Router · TanStack Query ·
   react-hook-form + zod · Tailwind CSS · Vitest + Testing Library + MSW ·
@@ -46,8 +46,8 @@ src/
     auth/               Google sign-in (LoginPage/AuthCard), OAuth callback
     dashboard/          autopilot overview: metrics, content pipeline, strategy
     content/            content workbench: generated post + SEO/GEO panels
-    optimize/           SEO/GEO opportunities + AI-answer coverage
-    notifications/      activity feed with tab filters
+    optimize/           GEO/SEO audit (real): URL → create → poll → findings + history
+    notifications/      activity feed (real): list / unread-count / mark(-all)-read
     account/            profile edit + delete (real) · stores/strategy/plan (mock)
 
   styles/
@@ -154,15 +154,23 @@ button.
 ## 6. Server state (TanStack Query)
 
 Server state uses Query hooks in `features/<area>/queries.ts`, built on `apiFetch`.
-Today only **Account** talks to the backend:
+Three areas talk to the backend today:
 
 - **Account:** `useUpdateProfile` (PATCH `/v1/users/me`) / `useDeleteAccount`
   (DELETE `/v1/users/me`). The updated user is written back into `AuthProvider` via
   `setUser` (single source of truth).
+- **Notifications:** `useNotifications` is a cursor **infinite query**
+  (`GET /v1/notifications`, optional `?unread`); `useUnreadCount` (drives the
+  sidebar badge + topbar dot); `useMarkRead` (PATCH `:id/read`) and `useMarkAllRead`
+  (POST `read-all`) mutate then invalidate both the list and the count.
+- **Optimize (GEO audit):** `useCreateAudit` (`POST /v1/audits`) kicks off an async
+  audit for a URL; `useAudit` (`GET /v1/audits/:id`) polls via `refetchInterval`
+  until the status is terminal (`COMPLETED`/`FAILED`), then renders the findings;
+  `useAudits` (`GET /v1/audits`) is a cursor **infinite query** backing run history.
 
-The Dashboard, Content, Optimize, and Notifications pages are **presentational** —
-they render hard-coded sample data (no queries) until the content APIs exist, at
-which point each grows a `queries.ts` following the Account pattern.
+The **Dashboard** and **Content** pages are still **presentational** — hard-coded
+sample data (no queries) until their content APIs exist, at which point each grows
+a `queries.ts` following the patterns above.
 
 Local UI state (tab selection, form values, toggles) stays in components /
 react-hook-form; server state stays in Query.
@@ -218,9 +226,11 @@ then strips the fragment. Requires `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` /
   `__tests__/` folder — e.g. `src/lib/api/__tests__/client.test.ts`,
   `src/lib/auth/__tests__/auth-context.test.tsx`,
   `src/features/dashboard/__tests__/DashboardPage.test.tsx`. Each product page has a
-  render/interaction test, and `src/__tests__/router.test.tsx` walks the sidebar
-  end to end (authenticated → click through pages → collapse). Shared test
-  infrastructure (Vitest setup, MSW server + handlers) lives in `src/test/`.
+  render/interaction test; the wired pages (Notifications, Optimize, Account) drive
+  their real query hooks against MSW handlers (list/poll, tab filter, mark-read,
+  run-audit), and `src/__tests__/router.test.tsx` walks the sidebar end to end
+  (authenticated → click through pages → collapse). Shared test infrastructure
+  (Vitest setup, MSW server + handlers) lives in `src/test/`.
 - **End-to-end:** Playwright (`e2e/flows.mjs`, run via `pnpm test:e2e`) drives real
   Chrome against the dev server. Auth is Google-only (backend-driven OAuth), so a
   logged-in journey can't run headlessly; the smoke covers what's reachable

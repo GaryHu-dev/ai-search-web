@@ -1,30 +1,45 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { http, HttpResponse } from 'msw'
+import type { ReactNode } from 'react'
+import { server } from '../../../test/msw/server'
 import { NotificationsPage } from '../NotificationsPage'
 
-const ui = () => render(<NotificationsPage />, { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> })
+const BASE = 'http://localhost:3000'
+
+function ui() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const Wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  return render(<NotificationsPage />, { wrapper: Wrapper })
+}
 
 describe('NotificationsPage', () => {
-  it('renders grouped notifications with a review action', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('renders notifications from the API', async () => {
     ui()
-    expect(screen.getByText(/1 post needs your review/i)).toBeInTheDocument()
-    expect(screen.getByText('Today')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /review/i })).toHaveAttribute('href', '/content')
+    expect(await screen.findByText(/audit completed/i)).toBeInTheDocument()
   })
 
-  it('filters to published when the tab is selected', async () => {
+  it('filters to unread (empty) when the Unread tab is selected', async () => {
     ui()
-    await userEvent.click(screen.getByRole('button', { name: /^published$/i }))
-    expect(screen.queryByText(/1 post needs your review/i)).not.toBeInTheDocument()
-    expect(screen.getByText(/published to brew & co/i)).toBeInTheDocument()
+    await screen.findByText(/audit completed/i)
+    await userEvent.click(screen.getByRole('button', { name: /^unread$/i }))
+    expect(await screen.findByText(/no unread notifications/i)).toBeInTheDocument()
   })
 
-  it('clears unread markers on mark-all-read', async () => {
-    const { container } = ui()
-    expect(container.querySelectorAll('.bg-hi').length).toBeGreaterThan(0)
+  it('calls the backend on mark-all-read', async () => {
+    let hit = false
+    server.use(http.post(`${BASE}/v1/notifications/read-all`, async () => {
+      hit = true
+      return HttpResponse.json({ data: { count: 1 }, requestId: 'r' })
+    }))
+    ui()
+    await screen.findByText(/audit completed/i)
     await userEvent.click(screen.getByRole('button', { name: /mark all read/i }))
-    expect(container.querySelectorAll('.bg-hi').length).toBe(0)
+    await new Promise((r) => setTimeout(r, 0))
+    expect(hit).toBe(true)
   })
 })

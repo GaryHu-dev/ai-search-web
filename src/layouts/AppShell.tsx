@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth/auth-context'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { avatarInitial } from '../lib/format'
 import { IconOverview, IconContent, IconOptimize, IconAccount, IconBell, IconPanel } from '../components/icons'
+import { useUnreadCount } from '../features/notifications/queries'
 
 const TITLES: Record<string, string> = {
   '/': 'Dashboard',
@@ -18,12 +19,14 @@ const NAV = [
   { to: '/', label: 'Dashboard', Icon: IconOverview },
   { to: '/content', label: 'Content', Icon: IconContent },
   { to: '/optimize', label: 'Optimize', Icon: IconOptimize },
-  { to: '/notifications', label: 'Notifications', Icon: IconBell, badge: 2 },
+  { to: '/notifications', label: 'Notifications', Icon: IconBell },
   { to: '/account', label: 'Account', Icon: IconAccount },
 ]
 
 export function AppShell() {
   const { user, logout } = useAuth()
+  const { data: unreadData } = useUnreadCount()
+  const unread = unreadData?.count ?? 0
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const drawerRef = useRef<HTMLElement>(null)
@@ -108,30 +111,33 @@ export function AppShell() {
         </div>
 
         <nav className="flex flex-col gap-0.5">
-          {NAV.map(({ to, label, Icon, badge }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              onClick={close}
-              aria-label={label}
-              className={({ isActive }) =>
-                `relative flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium ${centerMd} ${
-                  isActive ? 'bg-hi-soft font-semibold text-ink' : 'text-muted hover:bg-card-2 hover:text-ink'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon className={`h-[18px] w-[18px] flex-none ${isActive ? 'text-hi-deep' : ''}`} />
-                  <span className={hideMd}>{label}</span>
-                  {badge ? (
-                    <span className={`grid h-[18px] min-w-[18px] place-items-center rounded-full bg-bad px-1.5 text-[11px] font-bold text-white ${collapsed ? 'md:absolute md:right-1.5 md:top-1.5 md:h-2 md:w-2 md:min-w-0 md:px-0 md:text-[0px]' : 'ml-auto'}`}>{badge}</span>
-                  ) : null}
-                </>
-              )}
-            </NavLink>
-          ))}
+          {NAV.map(({ to, label, Icon }) => {
+            const badge = to === '/notifications' && unread > 0 ? unread : undefined
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                onClick={close}
+                aria-label={label}
+                className={({ isActive }) =>
+                  `relative flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium ${centerMd} ${
+                    isActive ? 'bg-hi-soft font-semibold text-ink' : 'text-muted hover:bg-card-2 hover:text-ink'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon className={`h-[18px] w-[18px] flex-none ${isActive ? 'text-hi-deep' : ''}`} />
+                    <span className={hideMd}>{label}</span>
+                    {badge ? (
+                      <span className={`grid h-[18px] min-w-[18px] place-items-center rounded-full bg-bad px-1.5 text-[11px] font-bold text-white ${collapsed ? 'md:absolute md:right-1.5 md:top-1.5 md:h-2 md:w-2 md:min-w-0 md:px-0 md:text-[0px]' : 'ml-auto'}`}>{badge}</span>
+                    ) : null}
+                  </>
+                )}
+              </NavLink>
+            )
+          })}
         </nav>
 
         <div className="mt-auto flex flex-col gap-2">
@@ -174,7 +180,7 @@ export function AppShell() {
             className="relative ml-auto grid h-9 w-9 place-items-center rounded-lg border border-line bg-card text-muted hover:bg-card-2 hover:text-ink"
           >
             <IconBell className="h-[17px] w-[17px]" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-bad ring-2 ring-[var(--bg)]" />
+            {unread > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-bad ring-2 ring-[var(--bg)]" />}
           </Link>
         </header>
         <div id="main" tabIndex={-1} className="w-full max-w-[1080px] px-4 py-7 outline-none md:px-6">
