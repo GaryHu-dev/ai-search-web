@@ -1,5 +1,8 @@
 # GEO — Web Frontend Design Spec (Milestone 1)
 
+> **Archived** — from the earlier GEO milestone, superseded by the Omniport
+> content-operations platform. Kept for history; not the current design.
+
 **Status:** approved design, ready for implementation plan
 **Date:** 2026-07-08
 **Repo:** `ai-search-web` (branch `dev`)

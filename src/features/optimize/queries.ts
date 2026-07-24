@@ -6,7 +6,7 @@ import type { Audit, AuditsPageData } from './types'
 // The audit lifecycle is async: create returns a PENDING row, then useAudit polls
 // the detail endpoint until the status is terminal (COMPLETED/FAILED).
 
-export function useAudits(params: { search?: string }) {
+export function useAudits(params: { search?: string } = {}) {
   return useInfiniteQuery({
     queryKey: ['audits', params],
     initialPageParam: undefined as string | undefined,

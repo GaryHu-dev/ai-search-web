@@ -1,85 +1,32 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth/auth-context'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { avatarInitial } from '../lib/format'
-import {
-  IconOverview, IconFiles, IconAccount, IconVisibility, IconCompetitors, IconOptimize, IconBell, IconPanel,
-} from '../components/icons'
+import { IconOverview, IconContent, IconOptimize, IconAccount, IconBell, IconPanel } from '../components/icons'
+import { useUnreadCount } from '../features/notifications/queries'
 
-const TITLES: Record<string, string> = { '/': 'Overview', '/files': 'Files', '/optimize': 'Optimize', '/account': 'Account' }
+const TITLES: Record<string, string> = {
+  '/': 'Dashboard',
+  '/content': 'Content',
+  '/optimize': 'Optimize',
+  '/notifications': 'Notifications',
+  '/account': 'Account',
+}
 const SB_KEY = 'geo.sidebar'
 
 const NAV = [
-  { to: '/', label: 'Overview', Icon: IconOverview },
-  { to: '/files', label: 'Files', Icon: IconFiles },
+  { to: '/', label: 'Dashboard', Icon: IconOverview },
+  { to: '/content', label: 'Content', Icon: IconContent },
   { to: '/optimize', label: 'Optimize', Icon: IconOptimize },
+  { to: '/notifications', label: 'Notifications', Icon: IconBell },
   { to: '/account', label: 'Account', Icon: IconAccount },
 ]
-const SOON = [
-  { label: 'Visibility', Icon: IconVisibility },
-  { label: 'Competitors', Icon: IconCompetitors },
-]
-
-const SAMPLE_NOTIFS = [
-  { id: 1, dot: '#12C7B6', title: 'You were cited in a new answer', body: 'ChatGPT now mentions your brand for “best GEO tools”.', time: '2h ago' },
-  { id: 2, dot: '#E1893D', title: 'A competitor overtook you', body: 'rival-analytics gained citations on Perplexity this week.', time: '1d ago' },
-  { id: 3, dot: '#5B4BF0', title: 'Weekly report ready', body: 'Your AI visibility rose 2.3 points vs last week.', time: '3d ago' },
-]
-
-function Notifications() {
-  const [open, setOpen] = useState(false)
-  const [unread, setUnread] = useState(true)
-
-  // Close on Escape while open.
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open])
-
-  return (
-    <div className="relative">
-      <button
-        aria-label="Notifications"
-        aria-haspopup="true"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        className="relative grid h-9 w-9 place-items-center rounded-lg border border-line bg-card text-muted hover:bg-card-2 hover:text-ink"
-      >
-        <IconBell className="h-[17px] w-[17px]" />
-        {unread && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-bad ring-2 ring-[var(--bg)]" />}
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden />
-          <div role="region" aria-label="Notifications" className="absolute right-0 z-40 mt-2 w-[336px] overflow-hidden rounded-xl border border-line bg-card shadow-[0_20px_50px_-20px_rgba(14,19,48,.4)] animate-[popin_.15s_ease]">
-            <div className="flex items-center justify-between border-b border-line px-4 py-3">
-              <span className="text-sm font-semibold">Notifications</span>
-              <button onClick={() => setUnread(false)} className="text-xs font-medium text-hi-deep hover:underline">Mark all read</button>
-            </div>
-            <div className="max-h-[320px] overflow-y-auto">
-              {SAMPLE_NOTIFS.map((n) => (
-                <div key={n.id} className="flex gap-3 border-b border-line px-4 py-3 last:border-b-0 hover:bg-card-2">
-                  <span className="mt-1.5 h-2 w-2 flex-none rounded-full" style={{ background: n.dot }} />
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold leading-snug">{n.title}</p>
-                    <p className="mt-0.5 text-[12.5px] leading-snug text-muted">{n.body}</p>
-                    <p className="mt-1 text-[11px] text-faint">{n.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
 
 export function AppShell() {
   const { user, logout } = useAuth()
+  const { data: unreadData } = useUnreadCount()
+  const unread = unreadData?.count ?? 0
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const drawerRef = useRef<HTMLElement>(null)
@@ -134,7 +81,7 @@ export function AppShell() {
     }
   }
 
-  const title = TITLES[location.pathname] ?? 'GEO'
+  const title = TITLES[location.pathname] ?? 'Omniport'
   const initial = avatarInitial(user?.displayName, user?.email)
   const close = () => setMenuOpen(false)
   const cols = collapsed ? 'md:grid-cols-[68px_1fr]' : 'md:grid-cols-[240px_1fr]'
@@ -160,40 +107,37 @@ export function AppShell() {
       >
         <div className={`flex items-center gap-2 px-1.5 py-1.5 ${centerMd}`}>
           <span className="grid h-[26px] w-[26px] flex-none place-items-center grad-avatar rounded-lg">◆</span>
-          <b className={`text-[17px] font-bold ${hideMd}`}>GEO</b>
+          <b className={`text-[17px] font-bold ${hideMd}`}>Omniport</b>
         </div>
 
         <nav className="flex flex-col gap-0.5">
-          {NAV.map(({ to, label, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              onClick={close}
-              aria-label={label}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium ${centerMd} ${
-                  isActive ? 'bg-hi-soft font-semibold text-ink' : 'text-muted hover:bg-card-2 hover:text-ink'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon className={`h-[18px] w-[18px] flex-none ${isActive ? 'text-hi-deep' : ''}`} />
-                  <span className={hideMd}>{label}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
-          <div className={`px-2.5 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-faint ${hideMd}`}>Coming soon</div>
-          <div className={`mx-2 my-1.5 h-px bg-line ${collapsed ? 'hidden md:block' : 'hidden'}`} />
-          {SOON.map(({ label, Icon }) => (
-            <div key={label} className={`flex items-center gap-3 px-2.5 py-2.5 text-sm font-medium text-faint ${centerMd}`}>
-              <Icon className="h-[18px] w-[18px] flex-none" />
-              <span className={hideMd}>{label}</span>
-              <span className={`ml-auto rounded border border-line bg-card-2 px-1.5 py-px text-[9.5px] font-semibold uppercase text-faint ${hideMd}`}>soon</span>
-            </div>
-          ))}
+          {NAV.map(({ to, label, Icon }) => {
+            const badge = to === '/notifications' && unread > 0 ? unread : undefined
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                onClick={close}
+                aria-label={label}
+                className={({ isActive }) =>
+                  `relative flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium ${centerMd} ${
+                    isActive ? 'bg-hi-soft font-semibold text-ink' : 'text-muted hover:bg-card-2 hover:text-ink'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon className={`h-[18px] w-[18px] flex-none ${isActive ? 'text-hi-deep' : ''}`} />
+                    <span className={hideMd}>{label}</span>
+                    {badge ? (
+                      <span className={`grid h-[18px] min-w-[18px] place-items-center rounded-full bg-bad px-1.5 text-[11px] font-bold text-white ${collapsed ? 'md:absolute md:right-1.5 md:top-1.5 md:h-2 md:w-2 md:min-w-0 md:px-0 md:text-[0px]' : 'ml-auto'}`}>{badge}</span>
+                    ) : null}
+                  </>
+                )}
+              </NavLink>
+            )
+          })}
         </nav>
 
         <div className="mt-auto flex flex-col gap-2">
@@ -230,9 +174,14 @@ export function AppShell() {
             <IconPanel className="h-[17px] w-[17px]" />
           </button>
           <h1 className="text-[17px] font-bold tracking-tight">{title}</h1>
-          <div className="ml-auto">
-            <Notifications />
-          </div>
+          <Link
+            to="/notifications"
+            aria-label="Notifications"
+            className="relative ml-auto grid h-9 w-9 place-items-center rounded-lg border border-line bg-card text-muted hover:bg-card-2 hover:text-ink"
+          >
+            <IconBell className="h-[17px] w-[17px]" />
+            {unread > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-bad ring-2 ring-[var(--bg)]" />}
+          </Link>
         </header>
         <div id="main" tabIndex={-1} className="w-full max-w-[1080px] px-4 py-7 outline-none md:px-6">
           <Outlet />

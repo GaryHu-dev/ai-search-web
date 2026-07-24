@@ -1,5 +1,8 @@
 # GEO Web — Foundation + Auth Implementation Plan (Plan 1 of 3)
 
+> **Archived** — from the earlier GEO milestone, superseded by the Omniport
+> content-operations platform. Kept for history; not the current design.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Scaffold the GEO React+Vite SPA and ship a working Login/Register flow against the existing backend, with a typed API client that handles the response envelope and Plan-A auth (single-flight refresh + rotation + bootstrap-on-load).

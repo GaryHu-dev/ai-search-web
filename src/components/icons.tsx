@@ -61,6 +61,11 @@ export const IconAccount = (p: P) => (
     <path d="M4 20a8 8 0 0 1 16 0" />
   </svg>
 )
+export const IconContent = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 5h16M4 10h16M4 15h10M4 20h7" />
+  </svg>
+)
 export const IconVisibility = (p: P) => (
   <svg {...base(p)}>
     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />

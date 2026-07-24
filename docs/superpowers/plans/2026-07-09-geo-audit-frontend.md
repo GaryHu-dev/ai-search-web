@@ -1,5 +1,8 @@
 # GEO Audit (Optimize) Frontend Implementation Plan
 
+> **Archived** — from the earlier GEO milestone. The Optimize GEO/SEO audit it
+> describes is now wired into the Omniport platform; kept for history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Wire the frontend to the backend's async URL-audit API — a real `/optimize` page (submit URL → poll → 6-dimension findings + history) and a live "Analyze" button on the Overview hero.
